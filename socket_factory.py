@@ -1,12 +1,24 @@
 # -*- coding: UTF -*-
 
 """
+The socket_factory module.
+======================
 
->>from socket_factory import SocketFactory
->>SocketFactory.build(4444, '192.168.0.105')
+Socket factories.
 
-This return a new socket instance. An InvalidIPv4Exception will be
-raised in case that the 'listen' argument is not a valid IPv4.
+:Example:
+
+>> from socket_factory import SocketFactory
+>> SocketFactory.build(4444, '192.168.0.105')
+<socket.socket fd=4, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('192.168.0.105', 4444)>
+
+This return a new socket instance. 
+
+>> from socket_factory import SocketFactory
+>> SocketFactory.build(4444, '192.1rr.0.105')
+...socket_factory.InvalidIPv4Exception: The IP 0.0.0.t is not a valid IPv4.
+
+An InvalidIPv4Exception will be raised in case that the 'listen' argument is not a valid IPv4.
 
 """
 
@@ -25,6 +37,7 @@ class SocketFactory(object):
         :param family: Socket family. 
         :param s_type: Socket type.
         :param max_connections: Number of maximium of accepted connections.
+        :return: The binded socket.
         """
 
         # Get socket instance with socket family(default=IPv4) and type(default=TCP).
