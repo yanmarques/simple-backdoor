@@ -23,10 +23,13 @@ Create a success response.
 
 from base64 import b64decode, b64encode
 
-def append_eof(function):
+def build_fragments(function):
     """ Append EOF delimiter on result function."""
-    def wraper(*args, **kwargs):
-        return function(*args) + Protocol.EOF
+    def wraper(*args):
+        result = Protocol.DELIMITER.join(function(*args))
+        if result[-2:] == Protocol.DELIMITER:
+            result = result[:-2] + Protocol.EOF
+        return result.encode()
     return wraper
 
 class Protocol(object):
@@ -58,7 +61,7 @@ class Protocol(object):
     ERROR_CODE   = '4'
 
     @staticmethod
-    @append_eof
+    @build_fragments
     def to_request(code, content='', params={}):
         """
         Create a message for request operation with the given
@@ -71,24 +74,21 @@ class Protocol(object):
         """
         if not Protocol.__is_code_for_request(code):
             raise TypeError('Invalid code for request.')
-        
-        if type(content) is bytes:
-
-            # Encode the request content.
-            content = Protocol.__encode(content)
             
         # Parse params as HTTP query string.
-        params = '&'.join(['{}={}'.format(key, params[key]) for key in params])
+        params = Protocol.query_parameters(params)
 
-        if not content:
-
+        if content:
+            # Encode the request content.
+            content = Protocol.__encode(content)
+        else:
             # Transform content as NULL content.
             content = Protocol.NULL
     
-        return Protocol.DELIMITER.join([code, content, params])
+        return (code, content, params)
 
     @staticmethod
-    @append_eof
+    @build_fragments
     def to_response(code, content=''):
         """
         Create a message for response operation with the given
@@ -101,7 +101,7 @@ class Protocol(object):
         if not Protocol.__is_code_for_response(code):
             raise TypeError('Invalid code for request.')
         
-        if type(content) is bytes:
+        if content:
 
             # Encode the response content.
             content = Protocol.__encode(content)
@@ -111,7 +111,7 @@ class Protocol(object):
             # Transform content as NULL content.
             content = Protocol.NULL
     
-        return Protocol.DELIMITER.join([code, content])
+        return (code, content)
 
     @staticmethod
     def __is_code_for_request(code):
@@ -140,6 +140,16 @@ class Protocol(object):
         ]
 
     @staticmethod
+    def query_parameters(parameters={}):
+        """
+        Build query parameters to send with request.
+
+        :param parameters: Set with key:value params.
+        :return: String representation.
+        """
+        return '&'.join(['{}={}'.format(key, parameters[key]) for key in parameters])
+
+    @staticmethod
     def __encode(data, encoding='utf-8'):
         """ 
         Encode the bytes of data to str. If data returned starts with base64,
@@ -151,11 +161,13 @@ class Protocol(object):
         :return: The encoded data.
         """
         try:
+            if type(data) == str:
 
-            # Try to encode using default encoding.
-            return data.encode(encoding=encoding)
+                # Try to encode using default encoding.
+                return data.encode(encoding=encoding)
         except UnicodeDecodeError:
+            pass
 
-            # Preppend informational data to content and 
-            # encode it using base64.  
-            return 'base64:{}'.format(b64encode(data))
+        # Preppend informational data to content and 
+        # encode it using base64.  
+        return 'base64:{}'.format(b64encode(data))
