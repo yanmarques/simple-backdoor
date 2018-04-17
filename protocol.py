@@ -80,11 +80,11 @@ class Protocol(object):
 
         if content:
             # Encode the request content.
-            content = Protocol.__encode(content)
+            content = Protocol.encode(content)
         else:
             # Transform content as NULL content.
             content = Protocol.NULL
-    
+        
         return (code, content, params)
 
     @staticmethod
@@ -102,12 +102,9 @@ class Protocol(object):
             raise TypeError('Invalid code for request.')
         
         if content:
-
             # Encode the response content.
-            content = Protocol.__encode(content)
-
-        if not content:
-
+            content = Protocol.encode(content)
+        else:
             # Transform content as NULL content.
             content = Protocol.NULL
     
@@ -148,26 +145,42 @@ class Protocol(object):
         :return: String representation.
         """
         return '&'.join(['{}={}'.format(key, parameters[key]) for key in parameters])
-
+    
     @staticmethod
-    def __encode(data, encoding='utf-8'):
+    def encode(data, encoding='utf-8'):
         """ 
-        Encode the bytes of data to str. If data returned starts with base64,
+        Encode the data to string. If data returned starts with base64,
         then this means an error ocurred when trying to encode with default encoding
         and the data was encoded using base64.
 
-        :param data: The data as bytes.
+        :param data: The data as string.
         :param encoding: The encoding to be used.
         :return: The encoded data.
         """
         try:
-            if type(data) == str:
-
+            if type(data) is str:
                 # Try to encode using default encoding.
-                return data.encode(encoding=encoding)
+                data.encode(encoding=encoding)
+            elif type(data) is bytes:
+                return data.decode(encoding=encoding)
         except UnicodeDecodeError:
-            pass
+            # Preppend informational data to content and 
+            # encode it using base64.  
+            return (b'base64:' + b64encode(data)).decode()
+        return data
 
-        # Preppend informational data to content and 
-        # encode it using base64.  
-        return 'base64:{}'.format(b64encode(data))
+    @staticmethod
+    def decode(content):
+        """ 
+        Decode to string representation. If object starts with base64,
+        then this means we will decode it using base64.
+
+        :param data: The data as bytes.
+        :return: The decoded data.
+        """
+        if type(content) is str:
+            content = content.encode()
+             
+        if content[:7] == b'base64:':
+            return b64decode(content[:7])
+        return content.decode()
