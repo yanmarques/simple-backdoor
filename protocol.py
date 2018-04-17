@@ -29,6 +29,8 @@ def build_fragments(function):
         result = Protocol.DELIMITER.join(function(*args))
         if result[-2:] == Protocol.DELIMITER:
             result = result[:-2] + Protocol.EOF
+        else:
+            result += Protocol.EOF
         return result.encode()
     return wraper
 
@@ -180,7 +182,7 @@ class Protocol(object):
         """
         if type(content) is str:
             content = content.encode()
-             
+
         if content[:7] == b'base64:':
             return b64decode(content[:7])
         return content.decode()
