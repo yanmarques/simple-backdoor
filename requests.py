@@ -1,4 +1,4 @@
-# -*- coding: UTF -*-
+# -*- coding: utf-8 -*-
 
 """
 The request classes module.
