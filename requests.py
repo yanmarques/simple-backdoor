@@ -118,5 +118,3 @@ class FileRequest(BaseRequest):
         if 'name' not in params:
             params['name'] = self.__file
         return params
-
-print(Request('Hello world', params={'foo': 'bar'}).get_raw())
