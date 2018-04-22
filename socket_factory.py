@@ -26,6 +26,10 @@ import socket
 
 class SocketFactory(object):
     """A socket factory to build sockets."""
+
+    # The default socket buffer size. 
+    BUFFER_SIZE_SND = 4096
+    BUFFER_SIZE_RCV = 4096
     
     @staticmethod
     def build(port, listen=None, family=None, s_type=None, max_connections=1):
@@ -47,6 +51,10 @@ class SocketFactory(object):
         # Configurate socket to release address and port on close.
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+        # Configurate the default buffer size of the socket.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SocketFactory.BUFFER_SIZE_RCV)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SocketFactory.BUFFER_SIZE_SND)
 
         # Check wheter the listen IP is a valid IPv4
         if listen:
