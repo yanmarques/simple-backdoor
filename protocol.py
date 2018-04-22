@@ -50,13 +50,14 @@ class Protocol(object):
     NULL         = '\x00'
 
     # Request codes.
-    GET_INFO     = '\x01'
+    GET_INFO     = '\x01'    
     PWD          = '\x02'
-    EXIT         = '\x03'
-    ACK          = '\x04'
+    EXIT         = '\x04'
+    ACK          = '\x06'
     DOWNLOAD     = '\x05'
-    UPLOAD       = '\x06'
+    UPLOAD       = '\x03'
     MSG          = '\x07'
+    SYN          = '\x16'
 
     # Response codes.
     SUCCESS_CODE = '2'
