@@ -32,7 +32,7 @@ class SocketFactory(object):
     BUFFER_SIZE_RCV = 4096
     
     @staticmethod
-    def build(port, listen=None, family=None, s_type=None, max_connections=1):
+    def server(port, listen=None, family=None, s_type=None, max_connections=1):
         """
         Build a socket with passed arguments.
         
@@ -43,18 +43,8 @@ class SocketFactory(object):
         :param max_connections: Number of maximium of accepted connections.
         :return: The binded socket.
         """
-
-        # Get socket instance with socket family(default=IPv4) and type(default=TCP).
-        sock = socket.socket(family=socket.AF_INET if family is None else family, 
-            type=socket.SOCK_STREAM if s_type is None else s_type)
-
-        # Configurate socket to release address and port on close.
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
-        # Configurate the default buffer size of the socket.
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SocketFactory.BUFFER_SIZE_RCV)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SocketFactory.BUFFER_SIZE_SND)
+        # Create socket object.
+        sock = SocketFactory.__make_socket(family=family, s_type=s_type)
 
         # Check wheter the listen IP is a valid IPv4
         if listen:
@@ -68,6 +58,47 @@ class SocketFactory(object):
         
         # Determine the max of connections the socket will accept.
         sock.listen(max_connections)
+        return sock
+
+    @staticmethod
+    def client(host, port, family=None, s_type=None):
+        """
+        Connects the socket to a host.
+
+        :param host: The host IP.
+        :param port: The opened port.   
+        :param family: Socket family. 
+        :param s_type: Socket type. 
+        :return: The socket object.
+        """
+         # Create socket object.
+        sock = SocketFactory.__make_socket(family=family, s_type=s_type)
+
+        # Connects the socket to host:port.
+        sock.connect((host, int(port)))
+
+        return sock
+
+    @staticmethod
+    def __make_socket(family=None, s_type=None):
+        """
+        Configurate the socket.
+        
+        :param family: Socket family. 
+        :param s_type: Socket type.
+        """
+        # Get socket instance with socket family(default=IPv4) and type(default=TCP).
+        sock = socket.socket(family=socket.AF_INET if family is None else family, 
+            type=socket.SOCK_STREAM if s_type is None else s_type)
+
+        # Configurate socket to release address and port on close.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+        # Configurate the default buffer size of the socket.
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SocketFactory.BUFFER_SIZE_RCV)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SocketFactory.BUFFER_SIZE_SND)
+
         return sock
         
 class InvalidIPv4Exception(Exception):
