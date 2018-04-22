@@ -28,7 +28,7 @@ Received: 4 - A new message
 """
 
 import threading
-import signal
+import time
 try:
     from queue import Queue
 except OSError:
@@ -58,8 +58,8 @@ class Worker(threading.Thread):
             content = self.queue.get()
 
             if content == POISON_PILL:
-                # Quits the thread loop and exit.
-                break 
+                # Finish thread process.
+                break
 
             # Receive content on queue producer then we run the callback with
             # the content as parameter.
@@ -71,7 +71,7 @@ class Manager(object):
     # The number of parallel workers.
     WORKERS = 4
 
-    def __init__(self, callback):
+    def __init__(self, callback, timeout=None):
         """
         Construct the worker manager class.
 
@@ -80,6 +80,7 @@ class Manager(object):
         self.queue = Queue()
         self.workers = []
         self.callback = callback
+        self.timeout = timeout
         self.joined = False
         self._on_finish = None
 
@@ -96,27 +97,36 @@ class Manager(object):
         # Register the worker finishing handler.
         self._on_finish = [callback, *args]
 
-    def start(self, data=None):
+    def start(self):
         """Start the workers."""
         self.__build_workers()
 
-    def put(self, data):
+    def put(self, data=None, delay=None):
         """
         Put data on queue to be executed on worker.
 
         :param data: The data to be inserted on queue. 
+        :param delay: The time to delay the put.
         """
-        self.queue.put(data)
+        if delay:
+            threading.Timer(int(delay), lambda: self.queue.put(data)).start()
+        else:
+            self.queue.put(data)
     
     def wait(self, timeout=None):
-        """Stop the workers."""
+        """Wait for workers to finish."""
+        # Wait for threads to finish process.
+        for worker in self.workers:
+            worker.join(timeout=timeout)
+
+    def stop(self):
+        """Stop all workers."""
         for _ in self.workers:
             self.put(POISON_PILL)
 
-        # Wait for threads to finish process.
-        for worker in self.workers:
-            worker.join()
-        
+        # Wait workers to finish.
+        self.wait()
+
         if self._on_finish:
             # Handle the finishing callback. 
             self.finish_handler()
@@ -130,9 +140,40 @@ class Manager(object):
         """Build the class workers."""
         for _ in range(0, self.WORKERS):
             worker = Worker(self.queue, self.callback)
-            
+
             # Start the worker process.
             worker.start()
 
             # Append the worker to the class workers.
             self.workers.append(worker)
+
+class Pooler(Manager):
+    """A thread pooler to execute process in an time interval."""
+    def __init__(self, interval, callback):
+        Manager.__init__(self, self._wrap_function(interval, callback))
+        self.WORKERS = 1
+
+    def start(self):
+        """Start the pooler. Overrides Manager start function."""
+        Manager.start(self)
+
+        # Force the pooler to initialize the process.
+        self.put()
+
+    def _wrap_function(self, interval, callback):
+        """
+        Wraps the function to execute the callback on loop.
+        
+        :param interval: The interval in seconds for each iteration.
+        :param callback: The callback to execute.
+        """
+        def wraper(*args):
+            # Executes the callback.
+            callback(*args)
+
+            # Sleep thread for some time.
+            time.sleep(interval)
+
+            # Call the worker on manager again.
+            self.put()
+        return wraper
