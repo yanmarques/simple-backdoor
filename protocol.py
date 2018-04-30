@@ -85,10 +85,10 @@ def decode(content):
 
 def build_fragments(function):
     """ Append EOF delimiter on result function."""
-    def wraper(*args):
-        result = DELIMITER.join(function(*args))
+    def wraper(*args, **kwargs):
+        result = DELIMITER.join(function(*args, **kwargs))
         if result[-2:] == DELIMITER:
-            result = result[:-2] + EOF
+            result += NULL + EOF
         else:
             result += EOF
         return encode(result)
@@ -141,6 +141,10 @@ def from_packet(content):
     if data is NULL:
         # Null content.
         data = None
+
+    if params is NULL:
+        # Null parameters
+        params = {}
 
     return (code.decode(), data, urllib.parse.parse_qs(params.decode()))
 
