@@ -4,14 +4,13 @@
 The socket api module.
 ======================
 
-The module has the SocketApi class, that is a underlying class for socket.socket object. 
+The module has the SocketApi class, that is a underlying class for socket.socket object.
 
 """
 
 import socket
 import struct
-import requests
-from protocol import Protocol
+import protocol
 
 class SocketApi(object):
     """
@@ -32,23 +31,20 @@ class SocketApi(object):
             raise TypeError('Argument socket must be a socket, not {}'.format(sock.__class__.__name__))
         self.__socket = sock
 
-    def send(self, request):
+    def send(self, data):
         """
-        Send a request through socket.
-        
-        :param request: The underlying request class.
+        Send data through socket.
+
+        :param data: The data content as bytes-like object.
         """
-        if not isinstance(request, requests.BaseRequest):
-            raise TypeError('Request must be a BaseRequest, not {}'.format(request.__class__.__name__))
-        
         # Get the total length in bytes of the request.
-        lenght = struct.pack('>Q', len(request.get_raw()))
+        lenght = struct.pack('>Q', len(data))
 
         # Send the length of the request.
         self.__socket.sendall(lenght)
 
         # Actually send the request.
-        self.__socket.send(request.get_raw())
+        self.__socket.send(data)
 
         # Receive socket ACk.
         self.__recv_ack()
@@ -63,7 +59,7 @@ class SocketApi(object):
         def reader():
             """
             Read data from socket and return the result.
-            
+
             :return: The content in bytes.
             """
             is_syn_request = True
@@ -71,7 +67,7 @@ class SocketApi(object):
             while is_syn_request:
 
                 # Read the lenght in bytes of the response.
-                (lenght,) = struct.unpack('>Q', self.__socket.recv(8)) 
+                (lenght,) = struct.unpack('>Q', self.__socket.recv(8))
 
                 # The amount of data in bytes.
                 data = b''
@@ -85,12 +81,12 @@ class SocketApi(object):
                     # default buffer size, we will only receive the remaining data.
                     data += self.__socket.recv(to_read if to_read < self.getsocket_bufer()[1] else None)
 
-                if data.decode() != Protocol.SYN:
+                if data.decode() != protocol.SYN:
                     # The request is not SYN.
                     is_syn_request = False
 
                 # Send ACk to socket.
-                self.__socket.sendall(Protocol.ACK.encode())
+                self.__socket.sendall(struct.pack('>Q', protocol.ACK))
 
             return data
 
@@ -105,16 +101,16 @@ class SocketApi(object):
         else:
             # Read the content.
             content = reader()
-        
+
         return content
-    
+
     def getsocket_bufer(self):
         """
         Return the lenght of the buffer.
-        
+
         :return: A tuple with the send and receive buffer size.
         """
-        return (self.__socket.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF), 
+        return (self.__socket.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF),
             self.__socket.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF))
 
     def close(self):
@@ -124,11 +120,11 @@ class SocketApi(object):
     def is_alive(self):
         """
         Determine whether the socket connetion is alive.
-        
+
         :return: A boolean value.
         """
         def checker():
-            """ 
+            """
             Verify whether the socket connection is good.
             """
             # SYN request.
@@ -141,7 +137,7 @@ class SocketApi(object):
                 # Send the lenght of the request.
                 self.__socket.sendall(lenght)
 
-                # Actually send the request content. 
+                # Actually send the request content.
                 self.__socket.send(syn)
 
                 # Receive acknoledge.
@@ -158,7 +154,7 @@ class SocketApi(object):
 
         :param function: The function to call.
         :param timeout: The socket timeout in seconds.
-        :return: The content of operation. Returns false if socket timed out.        
+        :return: The content of operation. Returns false if socket timed out.
         """
         self.__socket.settimeout(timeout)
         try:
@@ -175,7 +171,9 @@ class SocketApi(object):
     def __recv_ack(self):
         """Receive acknoledge from socket."""
         # Receive socket acknoledge.
-        if self.__socket.recv(8).decode() != Protocol.ACK:
+        (ack,) = struct.unpack('>Q', self.__socket.recv(8))
+
+        if ack is not protocol.ACK:
             raise AcknoledgeNotReceivedExecption('Socket returned invalid ACK.')
 
 class AcknoledgeNotReceivedExecption(socket.error):
