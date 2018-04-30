@@ -4,186 +4,158 @@
 The protocol module.
 ======================
 
-Create messages with specific content using procotol.
+The module to create protocol messages. A message is basically composed
+of a code, the message content and aditional parameters.
 
 :Example:
 
->> from protocol import Protocol
->> Protocol.to_request(Protocol.ACK, 'Acknolodge received')
-'\x04\r\nAcknolodge received\r\n\r\n\r\n'
+>> import protocol
+>> packet = protocol.build_packet(MSG, 'Hello World', {'python': True})
+b'\x07\r\nHello World\r\npython=True\r\n\r\n'
 
-Create a acknolodge request to be sent over socekt.
+Create a raw message with aditional parameters.
 
->> Protocol.to_response(Protocol.SUCCESS_CODE)
-'2\r\n\x00\r\n\r\n'
+>> protocol.from_packet(packet)
+('\x07', 'Hello World', {'python': ['True']})
 
-Create a success response.
+Parse the packet content and return the values of the request.
 
 """
 
 from base64 import b64decode, b64encode
+import urllib.parse
+
+# Content separator.
+DELIMITER    = '\r\n'
+
+# End of file.
+EOF          = '\r\n\r\n'
+
+# None value.
+NULL         = '\x00'
+
+# Request codes.
+GET_INFO     = '\x01'
+PWD          = '\x03'
+DOWNLOAD     = '\x05'
+UPLOAD       = '\x06'
+MSG          = '\x07'
+
+# Response codes.
+SUCCESS_CODE = '\x02'
+ERROR_CODE   = '\x04'
+
+# Reserved communication codes.
+ACK          = 0x006
+SYN          = 0x026
+EXIT         = 0x004
+
+def encode(data, encoding='utf-8'):
+    """
+    Encode the data to bytes. If data returned starts with base64, then this means an error ocurred when trying to encode
+    with default encoding and the data was encoded using base64.
+
+    :param data: Data to be encoded.
+    :param encoding: The encoding to be used.
+    :return: The bytes-like object.
+    """
+    try:
+        if type(data) is bytes:
+            data.decode(encoding=encoding)
+        else:
+            # Try to encode using default encoding.
+            data = data.encode(encoding=encoding)
+    except UnicodeDecodeError:
+        # Preppend informational data to content and encode it using base64.
+        return b'base64:' + b64encode(data if type(data) is bytes else data.encode())
+    return data
+
+def decode(content):
+    """
+    Decode to bytes-like object representation. If object starts with base64,
+    then this means we will decode it using base64.
+
+    :param content: The content as bytes.
+    :return: The decoded content.
+    :rtype: bytes or str.
+    """
+    if content[:7] == b'base64:':
+        return b64decode(content[7:])
+    return content.decode()
 
 def build_fragments(function):
     """ Append EOF delimiter on result function."""
     def wraper(*args):
-        result = Protocol.DELIMITER.join(function(*args))
-        if result[-2:] == Protocol.DELIMITER:
-            result = result[:-2] + Protocol.EOF
+        result = DELIMITER.join(function(*args))
+        if result[-2:] == DELIMITER:
+            result = result[:-2] + EOF
         else:
-            result += Protocol.EOF
-        return result.encode()
+            result += EOF
+        return encode(result)
     return wraper
 
-class Protocol(object):
+@build_fragments
+def build_packet(code, content=None, params={}):
     """
-    The class to create protocol messages. A message is basically composed
-    of a code, the message content and aditional parameters.
+    Create a packet message to sent over socket. The packet is built from a code,
+    the content of the request and the parameters.
+
+    :param code: The name code of request.
+    :param content: The content of request.
+    :param params: A list with key-value parameter
+    :return: The data encoded.
     """
+    if not __is_code_valid(code):
+        raise TypeError('Invalid code for packet.')
 
-    # Content separator.
-    DELIMITER    = '\r\n'
+    # Parse params as HTTP query string.
+    params = urllib.parse.urlencode(params)
 
-    # End of file.
-    EOF          = '\r\n\r\n'
+    if type(content) is bytes:
+        # Encode the data content
+        content = encode(content).decode()
 
-    # None value.
-    NULL         = '\x00'
+    if not content:
+        # Transform content as NULL content.
+        content = NULL
 
-    # Request codes.
-    GET_INFO     = '\x01'    
-    PWD          = '\x02'
-    EXIT         = '\x04'
-    ACK          = '\x06'
-    DOWNLOAD     = '\x05'
-    UPLOAD       = '\x03'
-    MSG          = '\x07'
-    SYN          = '\x16'
+    return (code, content, params)
 
-    # Response codes.
-    SUCCESS_CODE = '2'
-    ERROR_CODE   = '4'
+def from_packet(content):
+    """
+    Parse the content from a packet request, returning the code, content and request parameters.
 
-    @staticmethod
-    @build_fragments
-    def to_request(code, content='', params={}):
-        """
-        Create a message for request operation with the given
-        arguments to be decoded on client.
+    :param content: The raw request content.
+    :return: Code, content and parameters.
+    """
+    if not content.endswith(EOF.encode()):
+        # Invalid end of file on request.
+        raise MalformedPacketException('The packet is malformed. No EOF found on packet content.')
 
-        :param code: The name code of request.
-        :param content: The content of request.
-        :param params: A list with key-value parameter
-        :return: The data encoded.
-        """
-        if not Protocol.__is_code_for_request(code):
-            raise TypeError('Invalid code for request.')
-            
-        # Parse params as HTTP query string.
-        params = Protocol.query_parameters(params)
+    # Split request by delimiter removing the end of file flag from end of request content.
+    code, data, params = content[:-len(EOF)].split(DELIMITER.encode())
 
-        if content:
-            # Encode the request content.
-            content = Protocol.encode(content)
-        else:
-            # Transform content as NULL content.
-            content = Protocol.NULL
-        
-        return (code, content, params)
+    # Decode the data if base64 encoded.
+    data = decode(data)
 
-    @staticmethod
-    @build_fragments
-    def to_response(code, content=''):
-        """
-        Create a message for response operation with the given
-        arguments to be decoded on server.
+    if data is NULL:
+        # Null content.
+        data = None
 
-        :param code: The name code of response.
-        :param content: The content of response.
-        :return: The data decoded.
-        """
-        if not Protocol.__is_code_for_response(code):
-            raise TypeError('Invalid code for request.')
-        
-        if content:
-            # Encode the response content.
-            content = Protocol.encode(content)
-        else:
-            # Transform content as NULL content.
-            content = Protocol.NULL
-    
-        return (code, content)
+    return (code.decode(), data, urllib.parse.parse_qs(params.decode()))
 
-    @staticmethod
-    def __is_code_for_request(code):
-        """
-        Determine wheter a code is valid for request.
-        
-        :param code: The response code.
-        :return: A boolean indicating validation.
-        """
-        return code in [
-            Protocol.GET_INFO, Protocol.PWD, Protocol.EXIT, 
-            Protocol.ACK, Protocol.DOWNLOAD, Protocol.UPLOAD,
-            Protocol.MSG
-        ]
+def __is_code_valid(code):
+    """
+    Determine wheter a code is valid for packet.
 
-    @staticmethod
-    def __is_code_for_response(code):
-        """
-        Determine wheter a code is valid for response.
-        
-        :param code: The response code.
-        :return: A boolean indicating validation.
-        """
-        return code in [
-            Protocol.SUCCESS_CODE, Protocol.ERROR_CODE
-        ]
+    :param code: The code.
+    :return: A boolean indicating validation.
+    """
+    return code in [GET_INFO, PWD, DOWNLOAD, UPLOAD, MSG, SUCCESS_CODE, ERROR_CODE]
 
-    @staticmethod
-    def query_parameters(parameters={}):
-        """
-        Build query parameters to send with request.
+class MalformedPacketException(Exception):
+    def __init__(self, message):
+        self.message = message
 
-        :param parameters: Set with key:value params.
-        :return: String representation.
-        """
-        return '&'.join(['{}={}'.format(key, parameters[key]) for key in parameters])
-    
-    @staticmethod
-    def encode(data, encoding='utf-8'):
-        """ 
-        Encode the data to string. If data returned starts with base64,
-        then this means an error ocurred when trying to encode with default encoding
-        and the data was encoded using base64.
-
-        :param data: The data as string.
-        :param encoding: The encoding to be used.
-        :return: The encoded data.
-        """
-        try:
-            if type(data) is str:
-                # Try to encode using default encoding.
-                data.encode(encoding=encoding)
-            elif type(data) is bytes:
-                return data.decode(encoding=encoding)
-        except UnicodeDecodeError:
-            # Preppend informational data to content and 
-            # encode it using base64.  
-            return (b'base64:' + b64encode(data)).decode()
-        return data
-
-    @staticmethod
-    def decode(content):
-        """ 
-        Decode to string representation. If object starts with base64,
-        then this means we will decode it using base64.
-
-        :param data: The data as bytes.
-        :return: The decoded data.
-        """
-        if type(content) is str:
-            content = content.encode()
-
-        if content[:7] == b'base64:':
-            return b64decode(content[:7])
-        return content.decode()
+    def __repr__(self):
+        return str(self.message)
