@@ -101,7 +101,7 @@ class SocketApi(object):
         else:
             # Read the content.
             content = reader()
-
+        print(content)
         return content
 
     def getsocket_bufer(self):
