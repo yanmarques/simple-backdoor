@@ -87,19 +87,19 @@ def _format(color, message, end=True):
     return '{}{}{}'.format(color, message, NULL if end else '')
 
 class DataInterface(abc.ABCMeta if sys.version_info[0] < 3 else abc.ABC):
-    """ BaseRequest class."""
+    """Base class to handle incomming/outgoing data through socket connections."""
     def __init__(self, content=None, params={}, code=None):
         """Instantiate request with data and parameters."""
-        raise NotImplemented('Can not instantiate an abstract class.')
+        raise NotImplementedError('Can not instantiate an abstract class.')
 
     @abc.abstractproperty
     def content(self):
-        """Get request content as bytes."""
+        """Get content."""
         pass
 
     @abc.abstractproperty
     def params(self):
-        """Get the request parameters as dictionary."""
+        """Get the parameters as dictionary."""
         pass
 
     @abc.abstractmethod
