@@ -10,6 +10,7 @@ to create protocol packets.
 
 """
 
+import sys
 import protocol
 from utils import DataInterface
 
