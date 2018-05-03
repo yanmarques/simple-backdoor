@@ -2,54 +2,61 @@
 # -*- coding: utf-8 -*-
 
 """
-The socket responses module.
+The protocol responses module.
 ======================
 
-The constructed responses will be handled by client. The client socket will act like a server,
-receiving requests and properly sending responses. The protocol code responses will be followed
-by protocol module response codes.
-The normal response codes will be of sucess and error. Althought the socket is able to send FileResponse,
-that will be handled with a diferent response code, as it must be stored on file system or in memory for
-short use case.
-
-The responses uses BaseResponse as base class. The BaseResponse helps you to create responses and is
-used to instruct socket to handle response/requests.
+Handle protocol packet responses. The protocol responses have a simple response code
+indicating whether the client understood the packet been sent. The handler also construct
+a Packet object from packet content.
 
 """
 
-from protocol import Protocol
+import protocol
+from packets import Packet
 
-class BaseResponse(abstract):
-    """BaseResponse class."""
-
-    def __init__(self, content, code):
+class ResponseHandler(object):
+    """The handler of response packets."""
+    def __init__(self, on_error=None):
         """
-        Create response object with content and response code. No parameters allowed so far.
+        Construct a ResponseHandler object.
 
-        :param content: The response content.
-        :param code: The significant response code.
-        :return: The BaseResponse object.
+        :param on_error: The function to execute when packet had error on response.
+        :return: The ResponseHandler object.
         """
-        self.__content = content
-        self.__code = code
+        self.on_error = None
 
-    @property
-    def content(self):
-        """Get response content as bytes."""
-        return self.__content
-
-    def get_raw(self):
-        """Get raw content to be sent over socket."""
-        return Protocol.to_response(self.__code, self.__content)
-
-class Response(BaseResponse):
-    """The normal response with the content."""
-    def __init__(self, content, code=None):
+    @on_error.setter
+    def on_error(self, on_error):
         """
-        Create a content response.
+        Register a on_error callback event.
 
-        :param content: The response content.
-        :param code: The significant response code.
-        :return: Class object.
+        :param on_error: The function to execute when packet had error on response.
         """
-        BaseResponse.__init__(content, code if code else Protocol.SUCCESS_CODE)
+        if type(on_error) is not callable:
+            raise TypeError('The on_error argument must be a callback, not {}'.format(on_error.__class__.__name__))
+        self.on_error = on_error
+
+    def handle(self, packet):
+        """
+            Handle a raw protocol packet and return the constructed packet. Since it follows the protocol codes,
+            the only allowed response codes are the protocols response codes, any other code will raise a InvalidPacketCode
+            exception.
+
+            :param packet: The packet content.
+            :return: The packet object or None.
+        """
+        # Decode the packet fragments.
+        code, data, params = protocol.from_packet(packet)
+
+        if code is protocol.SUCCESS_CODE:
+            # The packet was succesfull understood by the client.
+            return Packet(content=data, params=params, code=code)
+        elif code is protocol.ERROR_CODE:
+            # The packet had errors or not had been understood by the client.
+            if self.on_error is not None:
+
+                # Execute the on error event with the packet data.
+                self.on_error(data)
+            return None
+        else:
+            raise protocol.InvalidPacketCode('Invalid response code. Code: {}'.format(code))
