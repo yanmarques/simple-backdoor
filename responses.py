@@ -23,18 +23,17 @@ class ResponseHandler(object):
         :param on_error: The function to execute when packet had error on response.
         :return: The ResponseHandler object.
         """
-        self.on_error = None
+        self._on_error = None
 
-    @on_error.setter
     def on_error(self, on_error):
         """
         Register a on_error callback event.
 
         :param on_error: The function to execute when packet had error on response.
         """
-        if type(on_error) is not callable:
+        if not callable(on_error):
             raise TypeError('The on_error argument must be a callback, not {}'.format(on_error.__class__.__name__))
-        self.on_error = on_error
+        self._on_error = on_error
 
     def handle(self, packet):
         """
@@ -53,10 +52,10 @@ class ResponseHandler(object):
             return Packet(content=data, params=params, code=code)
         elif code is protocol.ERROR_CODE:
             # The packet had errors or not had been understood by the client.
-            if self.on_error is not None:
+            if self._on_error is not None:
 
                 # Execute the on error event with the packet data.
-                self.on_error(data)
+                self._on_error(data)
             return None
         else:
             raise protocol.InvalidPacketCode('Invalid response code. Code: {}'.format(code))
