@@ -41,10 +41,10 @@ class SocketApi(object):
         lenght = struct.pack('>Q', len(data))
 
         # Send the length of the request.
-        self.__socket.sendall(lenght)
+        self.__socket.send(lenght)
 
         # Actually send the request.
-        self.__socket.send(data)
+        self.__socket.sendall(bytes(data))
 
         # Receive socket ACk.
         self.__recv_ack()
@@ -79,9 +79,16 @@ class SocketApi(object):
                     # Append data to socket. The buffer size of the data received depends on how
                     # much data we have to receive. Once the data to receive is lower than the
                     # default buffer size, we will only receive the remaining data.
-                    data += self.__socket.recv(to_read if to_read < self.getsocket_bufer()[1] else None)
+                    data += self.__socket.recv(to_read if to_read < self.getsocket_bufer()[1] 
+                        else self.getsocket_bufer()[1])
 
-                if data.decode() != protocol.SYN:
+                if data.decode() == str(protocol.EXIT):
+                    # Send ACk to socket.
+                    self.__socket.sendall(struct.pack('>Q', protocol.ACK))
+                
+                    return None
+
+                if data.decode() != str(protocol.SYN):
                     # The request is not SYN.
                     is_syn_request = False
 
@@ -115,7 +122,23 @@ class SocketApi(object):
 
     def close(self):
         """Close the socket connection."""
-        self.__socket.close()
+        if self.is_alive():
+            exit_code = str(protocol.EXIT).encode()
+            
+            # Get the close connection length.
+            lenght = struct.pack('>Q', len(exit_code))
+
+            # Send the signal to clone connection.
+            self.__socket.send(lenght)
+
+            # Actually send the exit message.
+            self.__socket.sendall(exit_code)
+
+            # Shoul receive a acklodgment.
+            self.__recv_ack()
+
+            # Actually close the socket file descriptor.
+            self.__socket.close()
 
     def is_alive(self):
         """
@@ -127,18 +150,18 @@ class SocketApi(object):
             """
             Verify whether the socket connection is good.
             """
-            # SYN request.
-            syn = Protocol.SYN.encode()
-
+            # Encode the SYN code.
+            syn = str(protocol.SYN).encode()
+            
             # Get the total lenght of NULL request
             lenght = struct.pack('>Q', len(syn))
 
             try:
                 # Send the lenght of the request.
-                self.__socket.sendall(lenght)
+                self.__socket.send(lenght)
 
                 # Actually send the request content.
-                self.__socket.send(syn)
+                self.__socket.sendall(syn)
 
                 # Receive acknoledge.
                 self.__recv_ack()

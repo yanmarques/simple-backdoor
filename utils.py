@@ -111,6 +111,10 @@ class DataInterface(abc.ABCMeta if sys.version_info[0] < 3 else abc.ABC):
         """The length of the packet in bytes."""
         return len(self.get_raw())
 
+    def __repr__(self):
+        """Return the bytes representation of the class."""
+        return self.__bytes__
+
     def __bytes__(self):
         """Return the bytes-like object representation of the packet."""
         return self.get_raw()

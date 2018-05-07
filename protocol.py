@@ -171,3 +171,10 @@ class InvalidPacketCode(Exception):
 
     def __repr__(self):
         return str(self.message)
+
+class ProtocolException(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __repr__(self):
+        return str(self.message)
