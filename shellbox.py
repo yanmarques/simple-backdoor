@@ -4,21 +4,21 @@
 The shellbox interactive terminal.
 ======================
 
-The shellbox emulate an interactive terminal to deploy a remote server to listen to incoming 
-backdoor connections. With the shellbox you can accept connections and store them on a list, 
-to help you find the correct connection to interact with. The default limit number of connections 
+The shellbox emulate an interactive terminal to deploy a remote server to listen to incoming
+backdoor connections. With the shellbox you can accept connections and store them on a list,
+to help you find the correct connection to interact with. The default limit number of connections
 is 5, any other connection attempt will be rejected by the server.
 
 :Example:
 
 >>> from shellbox import ShellBox
 >>> intro = '''
-...            /$$                 /$$ /$$ /$$                          
-...           | $$                | $$| $$| $$                          
+...            /$$                 /$$ /$$ /$$
+...           | $$                | $$| $$| $$
 ...   /$$$$$$$| $$$$$$$   /$$$$$$ | $$| $$| $$$$$$$   /$$$$$$  /$$   /$$
 ...  /$$_____/| $$__  $$ /$$__  $$| $$| $$| $$__  $$ /$$__  $$|  $$ /$$/
-... |  $$$$$$ | $$  \ $$| $$$$$$$$| $$| $$| $$  \ $$| $$  \ $$ \  $$$$/ 
-...  \____  $$| $$  | $$| $$_____/| $$| $$| $$  | $$| $$  | $$   gt;$$  $$ 
+... |  $$$$$$ | $$  \ $$| $$$$$$$$| $$| $$| $$  \ $$| $$  \ $$ \  $$$$/
+...  \____  $$| $$  | $$| $$_____/| $$| $$| $$  | $$| $$  | $$   gt;$$  $$
 ...  /$$$$$$$/| $$  | $$|  $$$$$$$| $$| $$| $$$$$$$/|  $$$$$$/ /$$/\  $$
 ... |_______/ |__/  |__/ \_______/|__/|__/|_______/  \______/ |__/  \__/
 ... '''
@@ -36,7 +36,7 @@ import cmd
 import sys
 import socket
 import utils
-from socket_factory import SocketFactory 
+from socket_factory import SocketFactory
 from socket_api import SocketApi
 from threads import Pooler
 
@@ -63,7 +63,7 @@ class ShellBox(cmd.Cmd):
         # Create the thread to resolve connections every 5 seconds.
         self.connection_resolver = Pooler(5, self._resolve_connections)
 
-        # Starts the manager. 
+        # Starts the manager.
         self.connection_resolver.start()
 
     def do_exit(self, *args):
@@ -132,8 +132,8 @@ class ShellBox(cmd.Cmd):
         # Print each host.
         for host in hosts:
             print(utils.blue('| {} |'.format(host + ' ' * (biggest - len(host)))))
-        
-        # Print the bottom stick. 
+
+        # Print the bottom stick.
         print(utils.yellow('{}'.format('-' * (biggest + 4))))
 
     def _accept_connection(self, *args):
@@ -146,8 +146,7 @@ class ShellBox(cmd.Cmd):
             self._add_session(*self.__socket.accept())
         except (socket.timeout, OSError):
             pass
-            raise Exception('Shit')
-        
+
         # Redefine socket timeout.
         self.__socket.settimeout(None)
 
@@ -158,19 +157,19 @@ class ShellBox(cmd.Cmd):
 
             # Verify whether socket connection is alive.
             if not session[0].is_alive():
-                
+
                 # Remove disconnected connection from list.
-                del self.__sessions[index]  
+                del self.__sessions[index]
 
     def _input(self, message):
         """
         Receive a user input using default buffer.
-        
+
         :param message: The message.
         """
         # For pythons version 2
         if sys.version_info.major == 2:
-            # Displays the message. 
+            # Displays the message.
             self.stdout.write(message)
 
             # Read data from STDIN.
@@ -179,11 +178,10 @@ class ShellBox(cmd.Cmd):
         return input(message)
 
     def _add_session(self, sock, address):
-        """ 
+        """
         Append a new session.
 
         :param sock: The socket object.
         :param address: A tuple with IP and port.
         """
         self.__sessions.append([SocketApi(sock), '{}:{}'.format(*address), 'Connected!'])
-    
