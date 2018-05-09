@@ -25,7 +25,11 @@ Parse the packet content and return the values of the request.
 """
 
 from base64 import b64decode, b64encode
-import urllib.parse
+try:
+    from urllib.parse import parse_qs, urlencode
+except:
+    from urlparse import parse_qs
+    from urllib import urlencode
 
 # Content separator.
 DELIMITER    = '\r\n'
@@ -65,7 +69,7 @@ def encode(data, encoding='utf-8'):
             data.decode(encoding=encoding)
         else:
             # Try to encode using default encoding.
-            data = data.encode(encoding=encoding)
+            data = str(data).encode(encoding=encoding)
     except UnicodeDecodeError:
         # Preppend informational data to content and encode it using base64.
         return b'base64:' + b64encode(data if type(data) is bytes else data.encode())
@@ -110,7 +114,7 @@ def build_packet(code, content=None, params={}):
         raise InvalidPacketCode('Invalid packet code. Code: {}'.format(code))
 
     # Parse params as HTTP query string.
-    params = urllib.parse.urlencode(params)
+    params = urlencode(params)
 
     if type(content) is bytes:
         # Encode the data content
@@ -147,7 +151,7 @@ def from_packet(content):
         # Null parameters
         params = {}
 
-    return (code.decode(), data, urllib.parse.parse_qs(params.decode()))
+    return (code.decode(), data, parse_qs(params.decode()))
 
 def __is_code_valid(code):
     """
