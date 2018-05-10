@@ -40,10 +40,12 @@ class TestProtocol(unittest.TestCase):
             return many
 
         wraper = protocol.build_fragments(fragment_one)
-        self.assertEqual(wraper(), one[0] + protocol.EOF)
+        expected = one[0] + protocol.EOF
+        self.assertEqual(wraper(), expected.encode())
 
         wraper = protocol.build_fragments(fragment_many)
-        self.assertEqual(wraper(), protocol.DELIMITER.join(many) + protocol.EOF)
+        expected = protocol.DELIMITER.join(many) + protocol.EOF
+        self.assertEqual(wraper(), expected.encode())
 
     def test_build_packet_with_all_params(self):
         code = protocol.CMD
@@ -51,25 +53,29 @@ class TestProtocol(unittest.TestCase):
         params = {'foo': 'bar'}
         qs_params = 'foo=bar'
         packet = protocol.build_packet(code, content, params)
-        self.assertEqual(packet, protocol.DELIMITER.join([code, content, qs_params]) + protocol.EOF)
+        expected = protocol.DELIMITER.join([code, content, qs_params]) + protocol.EOF
+        self.assertEqual(packet, expected.encode())
 
     def test_build_packet_without_content(self):
         code = protocol.CMD
         params = {'foo': 'bar'}
         qs_params = 'foo=bar'
         packet = protocol.build_packet(code, None, params)
-        self.assertEqual(packet, protocol.DELIMITER.join([code, protocol.NULL, qs_params]) + protocol.EOF)
+        expected = protocol.DELIMITER.join([code, protocol.NULL, qs_params]) + protocol.EOF
+        self.assertEqual(packet, expected.encode())
 
     def test_build_packet_without_params(self):
         code = protocol.CMD
         content = 'no params'
         packet = protocol.build_packet(code, content)
-        self.assertEqual(packet, protocol.DELIMITER.join([code, content, protocol.NULL]) + protocol.EOF)
+        expected = protocol.DELIMITER.join([code, content, protocol.NULL]) + protocol.EOF
+        self.assertEqual(packet, expected.encode())
 
     def test_build_packet_with_code(self):
         code = protocol.CMD
         packet = protocol.build_packet(code)
-        self.assertEqual(packet, protocol.DELIMITER.join([code, protocol.NULL, protocol.NULL]) + protocol.EOF)
+        excpeted = protocol.DELIMITER.join([code, protocol.NULL, protocol.NULL]) + protocol.EOF
+        self.assertEqual(packet, excpeted.encode())
 
     def test_build_packet_with_invalid_code(self):
         with self.assertRaises(protocol.InvalidPacketCode):
