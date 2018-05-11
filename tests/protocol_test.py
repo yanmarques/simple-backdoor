@@ -17,7 +17,7 @@ class TestProtocol(unittest.TestCase):
     def test_encode_with_string(self):
         value = 'a incredible str'
         encode = protocol.encode(value)
-        self.assertEqual(encode, value)
+        self.assertEqual(encode, value.encode())
 
     def test_decode_with_bytes(self):
         value = b'\x81'
