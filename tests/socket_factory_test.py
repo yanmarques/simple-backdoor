@@ -38,7 +38,13 @@ class SocketFactoryTest(unittest.TestCase):
 
     def get_available_port(self):
         def check_availability(port):
-            return subprocess.check_output('netstat -nl | grep :{}'.format(port), shell=True) == ''
+            try:
+                subprocess.check_output('netstat -nl | grep :{}'.format(port), shell=True)
+                return False
+            except subprocess.CalledProcessError as e:
+                if e.returncode > 0:
+                    return True
+                return False
         port = SERVER_PORT
         while not check_availability(port):
             port -= 1
