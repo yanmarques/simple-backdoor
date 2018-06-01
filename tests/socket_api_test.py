@@ -48,12 +48,8 @@ class SocketApiTest(unittest.TestCase):
         server.close()
 
     def test_close_method(self):
-        def serve(server):
-            server = SocketApi(server.accept()[0])
-            server.close()
-
         # Create the socket object.
-        server = self.create_server(serve)
+        server = self.create_server()
 
         client = SocketApi(SocketFactory.client('127.0.0.1', SERVER_PORT))
         client.close()
@@ -61,16 +57,8 @@ class SocketApiTest(unittest.TestCase):
         server.close()
 
     def test_is_alive_method(self):
-        def serve(server):
-            import time
-            server = SocketApi(server.accept()[0])
-
-            # Sleeps for 2 seconds.
-            time.sleep(1)
-            server.close()
-
         # Create the socket object.
-        server = self.create_server(serve)
+        server = self.create_server()
 
         client = SocketApi(SocketFactory.client('127.0.0.1', SERVER_PORT))
         self.assertTrue(client.is_alive())
@@ -78,9 +66,14 @@ class SocketApiTest(unittest.TestCase):
         self.assertFalse(client.is_alive())
         server.close()
 
-    def create_server(self, callback, args = []):
+    def create_server(self, callback = None, args = []):
         # Create the socket object.
         server = SocketFactory.server(SERVER_PORT)
+
+        if not callback:
+            def passable(**args): 
+                pass
+            callback = passable
 
         # Listen connections on a coroutine.
         threading.Thread(target=callback, args=(server, *args)).start()
