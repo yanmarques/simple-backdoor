@@ -10,7 +10,8 @@ The module has the SocketApi class, that is a underlying class for socket.socket
 
 import socket
 import struct
-import protocol
+from . import protocol
+from .utils import to_bytes
 
 class SocketApi(object):
     """
@@ -37,6 +38,9 @@ class SocketApi(object):
 
         :param data: The data content as bytes-like object.
         """
+        # Convert data to bytes.
+        data = to_bytes(data)
+
         # Get the total length in bytes of the request.
         lenght = struct.pack('>Q', len(data))
 
@@ -44,7 +48,7 @@ class SocketApi(object):
         self.__socket.send(lenght)
 
         # Actually send the request.
-        self.__socket.sendall(bytes(data))
+        self.__socket.sendall(data)
 
         # Receive socket ACk.
         self.__recv_ack()
@@ -109,7 +113,7 @@ class SocketApi(object):
             # Read the content.
             content = reader()
         
-        return content
+        return content.decode()
 
     def getsocket_bufer(self):
         """
