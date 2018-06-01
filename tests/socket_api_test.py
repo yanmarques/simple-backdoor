@@ -66,17 +66,26 @@ class SocketApiTest(unittest.TestCase):
         self.assertFalse(client.is_alive())
         server.close()
 
-    def create_server(self, callback = None, args = []):
+    def create_server(self, callback = None, args = None):
         # Create the socket object.
         server = SocketFactory.server(SERVER_PORT)
 
         if not callback:
-            def passable(**args): 
-                pass
+            
+            # Bug #6
+            def passable(server, **kwargs): 
+                import time
+                server = server.accept()[0]
+
+                # Waits 2 seconds to test server.
+                time.sleep(2)
+
+                # Close connection.
+                server.close()
             callback = passable
 
         # Listen connections on a coroutine.
-        threading.Thread(target=callback, args=(server, *args)).start()
+        threading.Thread(target=callback, args=(server, args)).start()
         return server
 
     def get_available_port(self):
