@@ -23,14 +23,14 @@ class PacketsTest(unittest.TestCase):
         packet = FileUploadPacket(filename)
         self.assertEqual(packet.content, content)
         self.assertEqual(packet.params, {'name': 'foo.txt'})
-        self.assertEqual(build_packet(UPLOAD, content, {'name': 'foo.txt'}), packet.__bytes__())
+        self.assertEqual(build_packet(UPLOAD, content, {'name': 'foo.txt'}), bytes(packet))
 
     def test_file_download_packet_class(self):
         filename = 'foo.bar'
         packet = FileDownloadPacket(filename)
         self.assertIsNone(packet.content)
         self.assertEqual(packet.params, {'filename': filename})
-        self.assertEqual(build_packet(DOWNLOAD, params={'filename': filename}), packet.__bytes__())
+        self.assertEqual(build_packet(DOWNLOAD, params={'filename': filename}), bytes(packet))
 
     def test_null_packet_class(self):
         params = {'foo': 'baz'}
