@@ -86,6 +86,18 @@ def _format(color, message, end=True):
     """
     return '{}{}{}'.format(color, message, NULL if end else '')
 
+def to_bytes(object):
+    """
+    Convert an object to bytes-like object.
+
+    :param object:<object> The object to be converted.
+    :return:<bytes> A bytes-like object.
+    """
+    if type(object) is str:
+        return object.encode()
+
+    return bytes(object)
+
 class DataInterface(abc.ABCMeta if sys.version_info[0] < 3 else abc.ABC):
     """Base class to handle incomming/outgoing data through socket connections."""
     def __init__(self, content=None, params={}, code=None):
